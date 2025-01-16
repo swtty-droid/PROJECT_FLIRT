@@ -46,14 +46,34 @@ class GEGLU(nn.Module):
 
 class FeedForward(nn.Module):
     def __init__(self, dim, dim_out=None, mult=4, glu=False, dropout=0.):
-        super().__init__()
-        inner_dim = int(dim * mult)
-        dim_out = default(dim_out, dim)
-        project_in = nn.Sequential(
-            nn.Linear(dim, inner_dim),
-            nn.GELU()
-        ) if not glu else GEGLU(dim, inner_dim)
+        """
+        FeedForward module for neural networks.
 
+        Args:
+            dim (int): Input dimension size.
+            dim_out (int, optional): Output dimension size. Defaults to `dim`.
+            mult (float, optional): Multiplication factor for intermediate dimension. Defaults to 4.
+            glu (bool, optional): Whether to use Gated Linear Unit (GLU). Defaults to False.
+            dropout (float, optional): Dropout probability. Defaults to 0.
+        """
+        super().__init__()
+
+        # Compute intermediate dimension
+        inner_dim = int(dim * mult)
+        
+        # If dim_out is not provided, set it equal to dim
+        dim_out = dim_out or dim
+
+        # Define the first projection layer with optional GLU
+        if glu:
+            project_in = GEGLU(dim, inner_dim)
+        else:
+            project_in = nn.Sequential(
+                nn.Linear(dim, inner_dim),
+                nn.GELU()
+            )
+        
+        # Define the main network structure
         self.net = nn.Sequential(
             project_in,
             nn.Dropout(dropout),
@@ -61,6 +81,15 @@ class FeedForward(nn.Module):
         )
 
     def forward(self, x):
+        """
+        Forward pass through the FeedForward network.
+
+        Args:
+            x (Tensor): Input tensor of shape (batch_size, dim).
+
+        Returns:
+            Tensor: Output tensor of shape (batch_size, dim_out).
+        """
         return self.net(x)
 
 
